@@ -1,50 +1,39 @@
-# DIO - Trilha .NET - Nuvem com Microsoft Azure
-www.dio.me
+# Sistema de RH na Nuvem (Desafio .NET + Azure)
 
-## Desafio de projeto
-Para este desafio, você precisará usar seus conhecimentos adquiridos no módulo de Nuvem com Microsoft Azure, da trilha .NET da DIO.
+Este projeto é um **sistema de Recursos Humanos** simples, desenvolvido como parte de um desafio da trilha **.NET + Azure da DIO**. O objetivo é criar uma **API REST** para gerenciar funcionários e registrar logs de todas as ações realizadas.
 
-## Contexto
-Você precisa construir um sistema de RH, onde para essa versão inicial do sistema o usuário poderá cadastrar os funcionários de uma empresa. 
+---
 
-Essa cadastro precisa precisa ter um CRUD, ou seja, deverá permitir obter os registros, criar, salvar e deletar esses registros. A sua aplicação também precisa armazenar logs de toda e qualquer alteração que venha a ocorrer com um funcionário.
+## ✨ Funcionalidades
 
-## Premissas
-A sua aplicação deverá ser do tipo Web API, Azure Functions ou MVC, fique a vontade para implementar a solução que achar mais adequado.
+* **Cadastrar Funcionários** (`POST /Funcionario`)
+* **Consultar Funcionário por ID** (`GET /Funcionario/{id}`)
+* **Atualizar Funcionário** (`PUT /Funcionario/{id}`)
+* **Deletar Funcionário** (`DELETE /Funcionario/{id}`)
+* **Gerar Logs Automáticos** em cada operação (criação, atualização e exclusão).
 
-A sua aplicação deverá ser implantada no Microsoft Azure, utilizando o App Service para a API, SQL Database para o banco relacional e Azure Table para armazenar os logs.
+---
 
-A sua aplicação deverá armazenar os logs de todas as alterações que venha a acontecer com o funcionário. Os logs deverão serem armazenados em uma Azure Table.
+## 🏗️ Arquitetura
 
-A sua classe principal, a classe Funcionario e a FuncionarioLog, deve ser a seguinte:
+O sistema foi construído em **.NET 6 (Web API)** e utiliza os seguintes recursos do **Microsoft Azure**:
 
-![Diagrama da classe Funcionario](Imagens/diagrama_classe.png)
+* **App Service** → Hospeda a API.
+* **Azure SQL Database** → Armazena os dados principais de Funcionários.
+* **Azure Table Storage** → Armazena os logs de alterações.
 
-A classe FuncionarioLog é filha da classe Funcionario, pois o log terá as mesmas informações da Funcionario.
+### Fluxo resumido:
 
-Não se esqueça de gerar a sua migration para atualização no banco de dados.
+```
+[Usuário] → [API no App Service] → [SQL Database]
+                                 ↘ [Table Storage - Logs]
+```
 
-## Métodos esperados
-É esperado que você crie o seus métodos conforme a seguir:
+---
 
+## 📦 Estrutura de Classes
 
-**Swagger**
-
-
-![Métodos Swagger](Imagens/swagger.png)
-
-
-**Endpoints**
-
-
-| Verbo  | Endpoint                | Parâmetro | Body               |
-|--------|-------------------------|-----------|--------------------|
-| GET    | /Funcionario/{id}       | id        | N/A                |
-| PUT    | /Funcionario/{id}       | id        | Schema Funcionario |
-| DELETE | /Funcionario/{id}       | id        | N/A                |
-| POST   | /Funcionario            | N/A       | Schema Funcionario |
-
-Esse é o schema (model) de Funcionario, utilizado para passar para os métodos que exigirem:
+### Funcionario
 
 ```json
 {
@@ -58,11 +47,124 @@ Esse é o schema (model) de Funcionario, utilizado para passar para os métodos 
 }
 ```
 
-## Ambiente
-Este é um diagrama do ambiente que deverá ser montado no Microsoft Azure, utilizando o App Service para a API, SQL Database para o banco relacional e Azure Table para armazenar os logs.
+### FuncionarioLog
 
-![Diagrama da classe Funcionario](Imagens/diagrama_api.png)
+Herdada de **Funcionario**, adiciona as informações de log:
 
+* `TipoAcao` (Inclusão, Atualização, Remoção)
+* `PartitionKey` e `RowKey` para organização na Table Storage
 
-## Solução
-O código está pela metade, e você deverá dar continuidade obedecendo as regras descritas acima, para que no final, tenhamos um programa funcional. Procure pela palavra comentada "TODO" no código, em seguida, implemente conforme as regras acima, incluindo a sua publicação na nuvem.
+### TipoAcao
+
+Enum para identificar a operação:
+
+* Inclusao
+* Atualizacao
+* Remocao
+
+---
+
+## 🔧 Configuração
+
+### `appsettings.json`
+
+```json
+{
+  "ConnectionStrings": {
+    "ConexaoPadrao": "<CONNECTION_STRING_SQL_SERVER>",
+    "SAConnectionString": "<AZURE_STORAGE_ACCOUNT_CONNECTION_STRING>",
+    "AzureTableName": "FuncionarioLogs"
+  }
+}
+```
+
+No Azure App Service, configure os mesmos valores em **Application Settings**.
+
+---
+
+## 🗄️ Banco de Dados
+
+O projeto utiliza **Entity Framework Core**. A migration inicial já cria a tabela de Funcionários.
+
+### Criar/atualizar o banco local:
+
+```bash
+dotnet ef database update
+```
+
+### Nova migration (se necessário):
+
+```bash
+dotnet ef migrations add NomeMigration
+dotnet ef database update
+```
+
+---
+
+## 🚀 Publicação no Azure
+
+1. Criar recursos no portal Azure:
+
+   * SQL Database
+   * Storage Account (Table)
+   * App Service
+
+2. Configurar connection strings no App Service.
+
+3. Publicar a aplicação:
+
+   * Via Visual Studio (Publish → Azure App Service)
+   * Ou via CLI:
+
+     ```bash
+     dotnet publish -c Release
+     ```
+
+4. Acessar a API publicada:
+   `https://<nome-app>.azurewebsites.net/swagger`
+
+---
+
+## 🧪 Testando os Endpoints
+
+### Criar Funcionário
+
+```bash
+curl -X POST "https://<seu-app>.azurewebsites.net/Funcionario" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nome":"Joao",
+    "endereco":"Rua A, 123",
+    "ramal":"100",
+    "emailProfissional":"joao@empresa.com",
+    "departamento":"TI",
+    "salario":2500,
+    "dataAdmissao":"2022-06-23T02:58:36.345Z"
+  }'
+```
+
+### Atualizar Funcionário
+
+```bash
+curl -X PUT "https://<seu-app>.azurewebsites.net/Funcionario/1" \
+  -H "Content-Type: application/json" \
+  -d '{ ... }'
+```
+
+### Obter Funcionário
+
+```bash
+curl "https://<seu-app>.azurewebsites.net/Funcionario/1"
+```
+
+### Deletar Funcionário
+
+```bash
+curl -X DELETE "https://<seu-app>.azurewebsites.net/Funcionario/1"
+```
+
+---
+
+## 📌 Resumo
+
+Esse projeto entrega um **sistema de RH simples na nuvem**, com API em .NET hospedada no Azure, persistindo dados em SQL Database e guardando logs em Table Storage. Assim, todas as operações ficam registradas e o sistema é escalável e confiável para uso em produção ou aprendizado.
