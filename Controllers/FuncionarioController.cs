@@ -17,7 +17,6 @@ public class FuncionarioController : ControllerBase
     public FuncionarioController(RHContext context, IConfiguration configuration)
     {
         _context = context;
-        // Note: keep these keys in appsettings.json (see README below)
         _connectionString = configuration.GetValue<string>("ConnectionStrings:SAConnectionString");
         _tableName = configuration.GetValue<string>("ConnectionStrings:AzureTableName");
     }
@@ -45,14 +44,10 @@ public class FuncionarioController : ControllerBase
     [HttpPost]
     public IActionResult Criar(Funcionario funcionario)
     {
-        // adiciona no contexto
         _context.Funcionarios.Add(funcionario);
-        // salva no SQL Server
         _context.SaveChanges();
 
-        // gera log e salva no Azure Table
         var tableClient = GetTableClient();
-        // usa o departamento como partition key (pode ser alterado conforme necessidade)
         var funcionarioLog = new FuncionarioLog(funcionario, TipoAcao.Inclusao, funcionario.Departamento ?? "Geral", Guid.NewGuid().ToString());
 
         tableClient.UpsertEntity(funcionarioLog, TableUpdateMode.Replace);
@@ -68,7 +63,6 @@ public class FuncionarioController : ControllerBase
         if (funcionarioBanco == null)
             return NotFound();
 
-        // atualiza todas as propriedades esperadas
         funcionarioBanco.Nome = funcionario.Nome;
         funcionarioBanco.Endereco = funcionario.Endereco;
         funcionarioBanco.Ramal = funcionario.Ramal;
@@ -77,7 +71,6 @@ public class FuncionarioController : ControllerBase
         funcionarioBanco.Salario = funcionario.Salario;
         funcionarioBanco.DataAdmissao = funcionario.DataAdmissao;
 
-        // informa ao EF que houve alteração e persiste
         _context.Funcionarios.Update(funcionarioBanco);
         _context.SaveChanges();
 
